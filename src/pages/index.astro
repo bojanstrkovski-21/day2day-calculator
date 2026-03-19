@@ -22,6 +22,11 @@ for (let y = currentYear - 2; y <= currentYear + 5; y++) {
     }
   }
 }
+// Remove Sunday holidays — the package already adds the Monday substitute (заменет ден)
+for (const dateStr of Object.keys(holidayMap)) {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (d.getDay() === 0) delete holidayMap[dateStr];
+}
 const holidaysJSON = JSON.stringify(holidayMap);
 ---
 
@@ -635,7 +640,8 @@ const holidaysJSON = JSON.stringify(holidayMap);
 					// Count ALL holidays in range for display
 					if (holiday) {
 						holidayDays++;
-						holidaysInRange.push({ date: toDateStr(cur), name: MK_HOLIDAYS[toDateStr(cur)], isWeekend: weekend });
+						// Only add workday holidays to the list (Sunday entries removed from map; Saturday filtered here)
+						if (!weekend) holidaysInRange.push({ date: toDateStr(cur), name: MK_HOLIDAYS[toDateStr(cur)] });
 					}
 					// Only weekday holidays reduce workdays
 					if (holiday && !weekend) weekdayHolidays++;
@@ -876,12 +882,9 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				section.style.display = 'block';
 				list.innerHTML = holidays.map(h => {
 					const d = parseLocalDate(h.date);
-					const friendly = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
-					const badge = h.isWeekend
-						? `<span style="font-size:.7rem;color:var(--orange);margin-left:.5rem;">(weekend)</span>`
-						: `<span style="font-size:.7rem;color:var(--red);margin-left:.5rem;">(workday)</span>`;
+					const friendly = d.toLocaleDateString('mk-MK', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
 					return `<div class="holiday-item">
-						<span class="holiday-date">${friendly}${badge}</span>
+						<span class="holiday-date">${friendly}</span>
 						<span class="holiday-name">${h.name}</span>
 					</div>`;
 				}).join('');
