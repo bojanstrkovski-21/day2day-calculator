@@ -447,6 +447,25 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				color: var(--bg0);
 			}
 
+			/* Weekend holiday — muted grey tint, overrides both weekend and holiday colours */
+			td.is-weekend.is-holiday span {
+				background: rgba(68,80,85,.55);
+				color: var(--grey1);
+				font-weight: 500;
+			}
+
+			td.in-range.is-weekend.is-holiday span {
+				background: rgba(68,80,85,.75);
+				color: var(--grey2);
+				font-weight: 500;
+			}
+
+			td.range-start.is-weekend.is-holiday span,
+			td.range-end.is-weekend.is-holiday span {
+				background: var(--bg3);
+				color: var(--grey2);
+			}
+
 			td.other-month span { color: var(--bg3); }
 
 			/* Legend */
@@ -551,6 +570,9 @@ const holidaysJSON = JSON.stringify(holidayMap);
 					<div class="legend-item">
 						<div class="legend-dot" style="background:var(--red)"></div> Public Holiday (MK)
 					</div>
+					<div class="legend-item">
+						<div class="legend-dot" style="background:var(--bg3)"></div> Holiday on Weekend
+					</div>
 				</div>
 
 				<div id="holiday-list-section" style="display:none">
@@ -640,8 +662,7 @@ const holidaysJSON = JSON.stringify(holidayMap);
 					// Count ALL holidays in range for display
 					if (holiday) {
 						holidayDays++;
-						// Only add workday holidays to the list (Sunday entries removed from map; Saturday filtered here)
-						if (!weekend) holidaysInRange.push({ date: toDateStr(cur), name: MK_HOLIDAYS[toDateStr(cur)] });
+						holidaysInRange.push({ date: toDateStr(cur), name: MK_HOLIDAYS[toDateStr(cur)], isWeekend: weekend });
 					}
 					// Only weekday holidays reduce workdays
 					if (holiday && !weekend) weekdayHolidays++;
@@ -883,9 +904,15 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				list.innerHTML = holidays.map(h => {
 					const d = parseLocalDate(h.date);
 					const friendly = d.toLocaleDateString('mk-MK', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
-					return `<div class="holiday-item">
-						<span class="holiday-date">${friendly}</span>
-						<span class="holiday-name">${h.name}</span>
+					const weekendStyle = h.isWeekend
+						? 'background:var(--bg2);opacity:.6;'
+						: '';
+					const badge = h.isWeekend
+						? `<span style="font-size:.7rem;color:var(--grey1);margin-left:.5rem;">(викенд)</span>`
+						: '';
+					return `<div class="holiday-item" style="${weekendStyle}">
+						<span class="holiday-date" style="${h.isWeekend ? 'color:var(--grey1)' : ''}">${friendly}${badge}</span>
+						<span class="holiday-name" style="${h.isWeekend ? 'color:var(--grey0)' : ''}">${h.name}</span>
 					</div>`;
 				}).join('');
 			}
