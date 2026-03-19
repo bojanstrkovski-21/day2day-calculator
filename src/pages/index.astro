@@ -22,11 +22,6 @@ for (let y = currentYear - 2; y <= currentYear + 5; y++) {
     }
   }
 }
-// Remove Sunday holidays — the package already adds the Monday substitute (заменет ден)
-for (const dateStr of Object.keys(holidayMap)) {
-  const d = new Date(dateStr + 'T00:00:00');
-  if (d.getDay() === 0) delete holidayMap[dateStr];
-}
 const holidaysJSON = JSON.stringify(holidayMap);
 ---
 
