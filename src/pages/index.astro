@@ -1,0 +1,943 @@
+---
+import Holidays from 'date-holidays';
+
+// These optional holidays are officially non-working for all MK citizens
+const EXTRA_NON_WORKING = new Set([
+  'Велики Петок',                      // Orthodox Good Friday (date varies by year)
+  'Успение на Пресвета Богородица',    // Dormition of the Theotokos — Aug 28 (fixed)
+  'Бадник',                            // Orthodox Christmas Eve — Jan 6 (fixed)
+  'Богојавление',                      // Epiphany / Vodici — Jan 19 (fixed)
+  'петок пред Духовден',               // Whit Friday / Friday before Pentecost (date varies)
+]);
+
+// Pre-generate MK holidays for current year ±2 years at build time
+const hd = new Holidays('MK');
+const currentYear = new Date().getFullYear();
+const holidayMap: Record<string, string> = {};
+for (let y = currentYear - 2; y <= currentYear + 5; y++) {
+  const list = hd.getHolidays(y);
+  for (const h of list) {
+    if (h.type === 'public' || EXTRA_NON_WORKING.has(h.name)) {
+      holidayMap[h.date.slice(0, 10)] = h.name;
+    }
+  }
+}
+const holidaysJSON = JSON.stringify(holidayMap);
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Day Calculator – North Macedonia</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+		<script src="https://cdn.jsdelivr.net/npm/flatpickr" is:inline></script>
+		<style is:global>
+			/* ── Everforest Medium Dark ─────────────────────────────────── */
+			:root {
+				--bg0:    #2b3339;
+				--bg1:    #323d43;
+				--bg2:    #3a464c;
+				--bg3:    #445055;
+				--bg4:    #4d5960;
+				--fg:     #d3c6aa;
+				--red:    #e67e80;
+				--orange: #e69875;
+				--yellow: #dbbc7f;
+				--green:  #a7c080;
+				--aqua:   #83c092;
+				--blue:   #7fbbb3;
+				--purple: #d699b6;
+				--grey0:  #7a8478;
+				--grey1:  #859289;
+				--grey2:  #9da9a0;
+			}
+
+			*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				background: var(--bg0);
+				color: var(--fg);
+				min-height: 100vh;
+				padding: 2rem 1rem;
+				line-height: 1.6;
+			}
+
+			.container {
+				max-width: 860px;
+				margin: 0 auto;
+			}
+
+			h1 {
+				font-size: 1.75rem;
+				font-weight: 700;
+				margin-bottom: 0.25rem;
+				color: var(--green);
+			}
+
+			.subtitle {
+				color: var(--grey2);
+				margin-bottom: 2rem;
+				font-size: 0.95rem;
+			}
+
+			.card {
+				background: var(--bg1);
+				border-radius: 12px;
+				padding: 1.75rem;
+				box-shadow: 0 4px 6px rgba(0,0,0,.3);
+				margin-bottom: 1.5rem;
+			}
+
+			.card h2 {
+				font-size: 0.8rem;
+				font-weight: 600;
+				color: var(--aqua);
+				text-transform: uppercase;
+				letter-spacing: .05em;
+				margin-bottom: 1.25rem;
+			}
+
+			/* Date inputs row */
+			.date-row {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 1.25rem;
+				margin-bottom: 1.25rem;
+			}
+
+			@media (max-width: 500px) {
+				.date-row { grid-template-columns: 1fr; }
+			}
+
+			.field label {
+				display: block;
+				font-size: 0.8rem;
+				font-weight: 600;
+				color: var(--grey2);
+				text-transform: uppercase;
+				letter-spacing: .05em;
+				margin-bottom: 0.4rem;
+			}
+
+			.field input[type="date"] {
+				width: 100%;
+				padding: 0.6rem 0.8rem;
+				border: 2px solid var(--bg3);
+				border-radius: 8px;
+				font-size: 1rem;
+				color: var(--fg);
+				background: var(--bg2);
+				transition: border-color .2s, background .2s;
+				cursor: pointer;
+				color-scheme: dark;
+			}
+
+			.field input[type="date"]:focus {
+				outline: none;
+				border-color: var(--green);
+				background: var(--bg1);
+			}
+
+			/* Flatpickr input */
+			.field input.flatpickr-input {
+				width: 100%;
+				padding: 0.6rem 0.8rem;
+				border: 2px solid var(--bg3);
+				border-radius: 8px;
+				font-size: 1rem;
+				color: var(--fg);
+				background: var(--bg2);
+				transition: border-color .2s, background .2s;
+				cursor: pointer;
+				font-family: inherit;
+			}
+
+			.field input.flatpickr-input:focus {
+				outline: none;
+				border-color: var(--green);
+				background: var(--bg1);
+			}
+
+			/* Flatpickr calendar popup — Everforest dark theme */
+			.flatpickr-calendar {
+				background: var(--bg1) !important;
+				border: 1.5px solid var(--bg3) !important;
+				box-shadow: 0 8px 24px rgba(0,0,0,.4) !important;
+				color: var(--fg) !important;
+				border-radius: 10px !important;
+				font-family: inherit !important;
+			}
+			.flatpickr-months .flatpickr-month,
+			.flatpickr-current-month,
+			.flatpickr-monthDropdown-months {
+				background: var(--bg1) !important;
+				color: var(--yellow) !important;
+				fill: var(--yellow) !important;
+			}
+			.flatpickr-monthDropdown-months {
+				border: none !important;
+				font-size: 1rem !important;
+			}
+			.flatpickr-current-month input.cur-year {
+				color: var(--yellow) !important;
+				font-size: 1rem !important;
+			}
+			.flatpickr-prev-month, .flatpickr-next-month {
+				color: var(--grey2) !important;
+				fill: var(--grey2) !important;
+			}
+			.flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+				color: var(--green) !important;
+				fill: var(--green) !important;
+			}
+			.flatpickr-weekdays, .flatpickr-weekdaycontainer {
+				background: var(--bg1) !important;
+			}
+			span.flatpickr-weekday {
+				background: var(--bg1) !important;
+				color: var(--grey1) !important;
+			}
+			.flatpickr-day {
+				color: var(--fg) !important;
+				border-radius: 6px !important;
+			}
+			.flatpickr-day:hover {
+				background: var(--bg3) !important;
+				border-color: var(--bg3) !important;
+			}
+			.flatpickr-day.today {
+				border-color: var(--aqua) !important;
+				color: var(--aqua) !important;
+			}
+			.flatpickr-day.selected,
+			.flatpickr-day.selected:hover {
+				background: var(--green) !important;
+				border-color: var(--green) !important;
+				color: var(--bg0) !important;
+				font-weight: 700 !important;
+			}
+			.flatpickr-day.flatpickr-disabled,
+			.flatpickr-day.prevMonthDay,
+			.flatpickr-day.nextMonthDay {
+				color: var(--bg4) !important;
+			}
+			.numInputWrapper:hover { background: transparent !important; }
+
+			/* Options */
+			.options {
+				display: flex;
+				gap: 0.75rem;
+				flex-wrap: wrap;
+				margin-bottom: 1.25rem;
+			}
+
+			.option-btn {
+				padding: 0.5rem 1.1rem;
+				border: 2px solid var(--bg3);
+				border-radius: 8px;
+				background: var(--bg2);
+				color: var(--fg);
+				font-size: 0.875rem;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all .2s;
+				white-space: nowrap;
+			}
+
+			.option-btn:hover {
+				border-color: var(--green);
+				background: var(--bg3);
+			}
+
+			.option-btn.active {
+				background: var(--green);
+				border-color: var(--green);
+				color: var(--bg0);
+				font-weight: 700;
+			}
+
+			/* Checkboxes */
+			.checkbox-row {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				margin-bottom: 0.75rem;
+				font-size: 0.9rem;
+				color: var(--grey2);
+				cursor: pointer;
+				user-select: none;
+			}
+
+			.checkbox-row input[type="checkbox"] {
+				width: 1rem;
+				height: 1rem;
+				cursor: pointer;
+				accent-color: var(--green);
+			}
+
+			/* Results */
+			.results {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+				gap: 1rem;
+				margin-top: 1.25rem;
+			}
+
+			.result-box {
+				background: var(--bg2);
+				border: 2px solid var(--bg3);
+				border-radius: 10px;
+				padding: 1rem;
+				text-align: center;
+				transition: border-color .2s;
+			}
+
+			.result-box.total    { border-color: var(--blue); }
+			.result-box.workdays { border-color: var(--green); }
+			.result-box.weekends { border-color: var(--orange); }
+			.result-box.holidays { border-color: var(--red); }
+
+			.result-box .value {
+				font-size: 2rem;
+				font-weight: 700;
+				line-height: 1;
+				margin-bottom: 0.25rem;
+			}
+
+			.result-box.total    .value { color: var(--blue); }
+			.result-box.workdays .value { color: var(--green); }
+			.result-box.weekends .value { color: var(--orange); }
+			.result-box.holidays .value { color: var(--red); }
+
+			.result-box .label {
+				font-size: 0.75rem;
+				color: var(--grey1);
+				font-weight: 500;
+				text-transform: uppercase;
+				letter-spacing: .04em;
+			}
+
+			.duration-bar {
+				background: var(--bg2);
+				border: 2px solid var(--bg3);
+				border-radius: 10px;
+				padding: 0.75rem 1rem;
+				margin-top: 1rem;
+			}
+
+			/* Hidden state */
+			#results-section { display: none; }
+			#results-section.visible { display: block; }
+
+			/* Error */
+			.error {
+				color: var(--red);
+				font-size: 0.875rem;
+				margin-top: 0.5rem;
+				display: none;
+			}
+			.error.visible { display: block; }
+
+			/* Calendar */
+			.calendar-grid-wrapper {
+				overflow-x: auto;
+			}
+
+			.calendar-months {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 1.5rem;
+				margin-top: 0.5rem;
+			}
+
+			.cal-month {
+				min-width: 224px;
+				flex: 0 0 auto;
+			}
+
+			.cal-month-title {
+				font-weight: 600;
+				font-size: 0.95rem;
+				margin-bottom: 0.6rem;
+				color: var(--yellow);
+				text-align: center;
+			}
+
+			.cal-table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 0.82rem;
+			}
+
+			.cal-table th {
+				text-align: center;
+				padding: 4px 2px;
+				color: var(--grey1);
+				font-weight: 600;
+				font-size: 0.75rem;
+			}
+
+			.cal-table td {
+				text-align: center;
+				padding: 3px 2px;
+				width: 32px;
+				height: 28px;
+				border-radius: 6px;
+				position: relative;
+			}
+
+			.cal-table td span {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 26px;
+				height: 26px;
+				border-radius: 50%;
+				font-size: 0.82rem;
+				color: var(--grey1);
+			}
+
+			/* Day states */
+			td.in-range span {
+				background: var(--bg3);
+				color: var(--blue);
+				font-weight: 500;
+			}
+
+			td.range-start span, td.range-end span {
+				background: var(--blue);
+				color: var(--bg0);
+				font-weight: 700;
+			}
+
+			td.is-weekend span {
+				color: var(--grey0);
+			}
+
+			td.in-range.is-weekend span {
+				background: var(--bg3);
+				color: var(--orange);
+			}
+
+			td.is-holiday span {
+				background: rgba(230,126,128,.18);
+				color: var(--red);
+				font-weight: 600;
+			}
+
+			td.in-range.is-holiday span {
+				background: rgba(230,126,128,.25);
+				color: var(--red);
+				font-weight: 600;
+			}
+
+			td.range-start.is-holiday span,
+			td.range-end.is-holiday span {
+				background: var(--red);
+				color: var(--bg0);
+			}
+
+			td.other-month span { color: var(--bg3); }
+
+			/* Legend */
+			.legend {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 1rem;
+				margin-top: 1.25rem;
+				font-size: 0.8rem;
+				color: var(--grey2);
+			}
+
+			.legend-item {
+				display: flex;
+				align-items: center;
+				gap: 0.4rem;
+			}
+
+			.legend-dot {
+				width: 14px;
+				height: 14px;
+				border-radius: 50%;
+				flex-shrink: 0;
+			}
+
+			/* Holiday list */
+			.holiday-list {
+				margin-top: 1rem;
+				font-size: 0.875rem;
+			}
+
+			.holiday-item {
+				display: flex;
+				justify-content: space-between;
+				padding: 0.5rem 0.75rem;
+				border-radius: 6px;
+				margin-bottom: 0.25rem;
+				background: var(--bg2);
+				gap: 1rem;
+			}
+
+			.holiday-date { color: var(--yellow); font-weight: 500; white-space: nowrap; }
+			.holiday-name { color: var(--fg); text-align: right; }
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>📅 Date Duration Calculator</h1>
+			<p class="subtitle">Calculate days, workdays and business days between two dates — North Macedonia holidays included.</p>
+
+			<div class="card">
+				<h2>Select Date Range</h2>
+
+				<div class="date-row">
+					<div class="field">
+						<label for="start-date">Start Date</label>
+						<input type="text" id="start-date" placeholder="DD.MM.YYYY" readonly="readonly" />
+					</div>
+					<div class="field">
+						<label for="end-date">End Date</label>
+						<input type="text" id="end-date" placeholder="DD.MM.YYYY" readonly="readonly" />
+					</div>
+				</div>
+
+				<div style="margin-bottom:1rem;">
+					<label class="checkbox-row">
+						<input type="checkbox" id="include-end" checked />
+						Include end date in calculation
+					</label>
+				</div>
+
+				<h2 style="margin-bottom:.75rem;">Count Method</h2>
+				<div class="options">
+					<button class="option-btn active" data-mode="all">All Days</button>
+					<button class="option-btn" data-mode="weekends">Exclude Weekends</button>
+					<button class="option-btn" data-mode="holidays">Exclude Weekends &amp; Holidays (MK)</button>
+				</div>
+
+				<p class="error" id="error-msg">Please select a valid start and end date (end must be after start).</p>
+
+				<div id="results-section">
+					<div class="results" id="results-grid"></div>
+					<div class="duration-bar"></div>
+				</div>
+			</div>
+
+			<div class="card" id="calendar-card" style="display:none">
+				<h2>Calendar Preview</h2>
+				<div class="calendar-grid-wrapper">
+					<div class="calendar-months" id="calendar-months"></div>
+				</div>
+				<div class="legend">
+					<div class="legend-item">
+						<div class="legend-dot" style="background:var(--blue)"></div> Start / End date
+					</div>
+					<div class="legend-item">
+						<div class="legend-dot" style="background:var(--bg3)"></div> In range (workday)
+					</div>
+					<div class="legend-item">
+						<div class="legend-dot" style="background:var(--orange)"></div> Weekend
+					</div>
+					<div class="legend-item">
+						<div class="legend-dot" style="background:var(--red)"></div> Public Holiday (MK)
+					</div>
+				</div>
+
+				<div id="holiday-list-section" style="display:none">
+					<h2 style="margin-top:1.5rem; margin-bottom:.5rem; color:var(--aqua);">Holidays in Range</h2>
+					<div class="holiday-list" id="holiday-list"></div>
+				</div>
+			</div>
+		</div>
+
+		<script define:vars={{ holidaysJSON }}>
+			// ── Data ────────────────────────────────────────────────────────
+			const MK_HOLIDAYS = JSON.parse(holidaysJSON); // { "YYYY-MM-DD": "Holiday Name" }
+
+			// ── State ────────────────────────────────────────────────────────
+			let mode = 'all'; // 'all' | 'weekends' | 'holidays'
+
+			// ── Helpers ──────────────────────────────────────────────────────
+			function toDateStr(d) {
+				// Returns local YYYY-MM-DD without timezone shift
+				const y = d.getFullYear();
+				const m = String(d.getMonth() + 1).padStart(2, '0');
+				const day = String(d.getDate()).padStart(2, '0');
+				return `${y}-${m}-${day}`;
+			}
+
+			function parseLocalDate(str) {
+				// str: "YYYY-MM-DD"
+				const [y, m, d] = str.split('-').map(Number);
+				return new Date(y, m - 1, d);
+			}
+
+			function isWeekend(d) {
+				const dow = d.getDay();
+				return dow === 0 || dow === 6;
+			}
+
+			function isHoliday(d) {
+				return !!MK_HOLIDAYS[toDateStr(d)];
+			}
+
+			function addDays(d, n) {
+				const r = new Date(d);
+				r.setDate(r.getDate() + n);
+				return r;
+			}
+
+			// ── Calculation ───────────────────────────────────────────────────
+			function calculate() {
+				const includeEnd = document.getElementById('include-end').checked;
+				const errorEl  = document.getElementById('error-msg');
+				const resultsSection = document.getElementById('results-section');
+				const calCard  = document.getElementById('calendar-card');
+
+				// Use dates from flatpickr if available, otherwise fall back to module-level vars
+				const start = (typeof getStartDate === 'function') ? getStartDate() : null;
+				const end   = (typeof getEndDate   === 'function') ? getEndDate()   : null;
+
+				if (!start || !end) {
+					errorEl.classList.remove('visible');
+					resultsSection.classList.remove('visible');
+					calCard.style.display = 'none';
+					return;
+				}
+
+				if (end < start) {
+					errorEl.classList.add('visible');
+					resultsSection.classList.remove('visible');
+					calCard.style.display = 'none';
+					return;
+				}
+
+				errorEl.classList.remove('visible');
+
+				// effective end for counting
+				const effectiveEnd = includeEnd ? addDays(end, 1) : end;
+
+				let totalDays = 0, weekendDays = 0, holidayDays = 0, weekdayHolidays = 0, workdays = 0;
+				const holidaysInRange = [];
+
+				let cur = new Date(start);
+				while (cur < effectiveEnd) {
+					totalDays++;
+					const weekend = isWeekend(cur);
+					const holiday = isHoliday(cur);
+
+					if (weekend) weekendDays++;
+					// Count ALL holidays in range for display
+					if (holiday) {
+						holidayDays++;
+						holidaysInRange.push({ date: toDateStr(cur), name: MK_HOLIDAYS[toDateStr(cur)], isWeekend: weekend });
+					}
+					// Only weekday holidays reduce workdays
+					if (holiday && !weekend) weekdayHolidays++;
+
+					if (mode === 'weekends') {
+						if (!weekend) workdays++;
+					} else if (mode === 'holidays') {
+						if (!weekend && !holiday) workdays++;
+					}
+
+					cur = addDays(cur, 1);
+				}
+
+				// Breakdown: years, months, weeks, days
+				const diffMs = effectiveEnd - start;
+				const totalDaysRaw = Math.round(diffMs / 86400000);
+
+				const y = end.getFullYear() - start.getFullYear();
+				const mAdj = end.getMonth() - start.getMonth();
+				const dAdj = end.getDate() - start.getDate();
+				let years = y, months = mAdj, days = dAdj;
+				if (includeEnd) {
+					// just recalculate simply
+				}
+				// Normalize
+				let tempStart = new Date(start);
+				years = 0; months = 0;
+				let tempY = new Date(tempStart);
+				tempY.setFullYear(tempY.getFullYear() + 1);
+				while (tempY <= (includeEnd ? end : addDays(end, -1))) {
+					years++;
+					tempStart = tempY;
+					tempY = new Date(tempStart);
+					tempY.setFullYear(tempY.getFullYear() + 1);
+				}
+				let tempM = new Date(tempStart);
+				tempM.setMonth(tempM.getMonth() + 1);
+				while (tempM <= (includeEnd ? end : addDays(end, -1))) {
+					months++;
+					tempStart = tempM;
+					tempM = new Date(tempStart);
+					tempM.setMonth(tempM.getMonth() + 1);
+				}
+				const remainingDays = Math.round(((includeEnd ? end : addDays(end, -1)) - tempStart) / 86400000) + (includeEnd ? 1 : 0);
+				const weeks = Math.floor(totalDays / 7);
+
+				const weekdaysTotal = totalDays - weekendDays;
+				renderResults({ totalDays, workdays, weekendDays, holidayDays, weekdayHolidays, weekdaysTotal, years, months, weeks, remainingDays });
+				renderCalendar(start, end, includeEnd);
+				renderHolidayList(holidaysInRange);
+
+				resultsSection.classList.add('visible');
+				calCard.style.display = 'block';
+			}
+
+			// ── Render Results ────────────────────────────────────────────────
+			function renderResults({ totalDays, workdays, weekendDays, holidayDays, weekdayHolidays, weekdaysTotal, years, months, weeks, remainingDays }) {
+				const grid = document.getElementById('results-grid');
+
+				let breakdown = '';
+				const parts = [];
+				if (years > 0) parts.push(`${years} year${years !== 1 ? 's' : ''}`);
+				if (months > 0) parts.push(`${months} month${months !== 1 ? 's' : ''}`);
+				if (remainingDays > 0) parts.push(`${remainingDays} day${remainingDays !== 1 ? 's' : ''}`);
+				breakdown = parts.join(', ') || '0 days';
+
+				// Build result boxes based on mode
+				let workdayBox = '';
+				if (mode === 'weekends') {
+					workdayBox = `
+						<div class="result-box workdays">
+							<div class="value">${workdays}</div>
+							<div class="label">Workdays (Mon–Fri)</div>
+						</div>`;
+				} else if (mode === 'holidays') {
+					workdayBox = `
+						<div class="result-box workdays">
+							<div class="value">${workdays}</div>
+							<div class="label">Working Days (excl. holidays)</div>
+						</div>`;
+				} else {
+					// 'all' mode — show Mon–Fri count as bonus info instead
+					workdayBox = `
+						<div class="result-box workdays">
+							<div class="value">${weekdaysTotal}</div>
+							<div class="label">Workdays (Mon–Fri)</div>
+						</div>`;
+				}
+
+				// Holiday note: on-weekday vs total
+				const holidayNote = holidayDays > weekdayHolidays
+					? `<div style="font-size:.7rem;color:var(--grey1);margin-top:.25rem">${weekdayHolidays} on workday${weekdayHolidays !== 1 ? 's' : ''}</div>`
+					: '';
+
+				grid.innerHTML = `
+					<div class="result-box total">
+						<div class="value">${totalDays}</div>
+						<div class="label">Total Days</div>
+					</div>
+					${workdayBox}
+					<div class="result-box weekends">
+						<div class="value">${weekendDays}</div>
+						<div class="label">Weekend Days</div>
+					</div>
+					<div class="result-box holidays">
+						<div class="value">${holidayDays}</div>
+						<div class="label">Public Holidays (MK)</div>
+						${holidayNote}
+					</div>
+				`;
+
+				document.querySelector('.duration-bar').innerHTML = `
+					<span style="font-size:.8rem;color:var(--grey1);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Duration: </span>
+					<span style="font-size:.95rem;font-weight:600;color:var(--yellow);">${breakdown}</span>
+					&nbsp;·&nbsp;
+					<span style="font-size:.8rem;color:var(--grey2);">${weeks} week${weeks !== 1 ? 's' : ''} + ${totalDays % 7} day${totalDays % 7 !== 1 ? 's' : ''}</span>
+				`;
+			}
+
+			// ── Render Calendar ───────────────────────────────────────────────
+			function renderCalendar(start, end, includeEnd) {
+				const container = document.getElementById('calendar-months');
+				container.innerHTML = '';
+
+				// Normalize to midnight so date comparisons work correctly
+				const normStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+				const normEnd   = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+				const effectiveEnd = includeEnd ? normEnd : addDays(normEnd, -1);
+
+				// Iterate each month between start and effectiveEnd
+				let cur = new Date(normStart.getFullYear(), normStart.getMonth(), 1);
+				const lastMonth = new Date(effectiveEnd.getFullYear(), effectiveEnd.getMonth(), 1);
+
+				while (cur <= lastMonth) {
+					container.appendChild(renderMonth(cur.getFullYear(), cur.getMonth(), normStart, effectiveEnd));
+					cur.setMonth(cur.getMonth() + 1);
+				}
+			}
+
+			const MONTH_NAMES = ['January','February','March','April','May','June',
+				'July','August','September','October','November','December'];
+			const DAY_NAMES = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+			function renderMonth(year, month, rangeStart, rangeEnd) {
+				const wrapper = document.createElement('div');
+				wrapper.className = 'cal-month';
+
+				const title = document.createElement('div');
+				title.className = 'cal-month-title';
+				title.textContent = `${MONTH_NAMES[month]} ${year}`;
+				wrapper.appendChild(title);
+
+				const table = document.createElement('table');
+				table.className = 'cal-table';
+
+				// Header row
+				const thead = document.createElement('thead');
+				const headerRow = document.createElement('tr');
+				DAY_NAMES.forEach(d => {
+					const th = document.createElement('th');
+					th.textContent = d;
+					headerRow.appendChild(th);
+				});
+				thead.appendChild(headerRow);
+				table.appendChild(thead);
+
+				const tbody = document.createElement('tbody');
+
+				// First day of month (0=Sun..6=Sat), convert to Mon-first (0=Mon..6=Sun)
+				const firstDay = new Date(year, month, 1);
+				let startDow = firstDay.getDay(); // 0=Sun
+				startDow = (startDow + 6) % 7;   // convert to Mon=0
+
+				const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+				let dayNum = 1 - startDow;
+				for (let row = 0; row < 6; row++) {
+					const tr = document.createElement('tr');
+					let hasContent = false;
+
+					for (let col = 0; col < 7; col++) {
+						const td = document.createElement('td');
+						if (dayNum >= 1 && dayNum <= daysInMonth) {
+							hasContent = true;
+							const d = new Date(year, month, dayNum);
+							const dow = (d.getDay() + 6) % 7; // Mon=0
+							const weekend = dow >= 5;
+							const holiday = isHoliday(d);
+
+							const inRange = d >= rangeStart && d <= rangeEnd;
+							const isStart = toDateStr(d) === toDateStr(rangeStart);
+							const isEnd   = toDateStr(d) === toDateStr(rangeEnd);
+
+							if (isStart || isEnd) td.classList.add('range-start');
+							else if (inRange) td.classList.add('in-range');
+
+							if (weekend) td.classList.add('is-weekend');
+							if (holiday) td.classList.add('is-holiday');
+
+							const span = document.createElement('span');
+							span.textContent = dayNum;
+
+							// Tooltip for holidays
+							if (holiday) {
+								td.title = MK_HOLIDAYS[toDateStr(d)];
+							}
+
+							td.appendChild(span);
+						} else if (dayNum < 1 || dayNum > daysInMonth) {
+							td.classList.add('other-month');
+							const span = document.createElement('span');
+							// show prev/next month days faded — optional, just leave empty
+							td.appendChild(span);
+						}
+						tr.appendChild(td);
+						dayNum++;
+					}
+
+					if (!hasContent && row > 3) break;
+					tbody.appendChild(tr);
+				}
+
+				table.appendChild(tbody);
+				wrapper.appendChild(table);
+				return wrapper;
+			}
+
+			// ── Holiday List ──────────────────────────────────────────────────
+			function renderHolidayList(holidays) {
+				const section = document.getElementById('holiday-list-section');
+				const list    = document.getElementById('holiday-list');
+
+				if (holidays.length === 0) {
+					section.style.display = 'none';
+					return;
+				}
+
+				section.style.display = 'block';
+				list.innerHTML = holidays.map(h => {
+					const d = parseLocalDate(h.date);
+					const friendly = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+					const badge = h.isWeekend
+						? `<span style="font-size:.7rem;color:var(--orange);margin-left:.5rem;">(weekend)</span>`
+						: `<span style="font-size:.7rem;color:var(--red);margin-left:.5rem;">(workday)</span>`;
+					return `<div class="holiday-item">
+						<span class="holiday-date">${friendly}${badge}</span>
+						<span class="holiday-name">${h.name}</span>
+					</div>`;
+				}).join('');
+			}
+
+			// ── Event wiring ──────────────────────────────────────────────────
+			document.querySelectorAll('.option-btn').forEach(btn => {
+				btn.addEventListener('click', () => {
+					document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+					btn.classList.add('active');
+					mode = btn.dataset.mode;
+					calculate();
+				});
+			});
+
+			document.getElementById('include-end').addEventListener('change', calculate);
+
+			// ── Flatpickr instances ───────────────────────────────────────────
+			const today = new Date();
+			const twoWeeks = addDays(today, 14);
+
+			// Internal state — always normalized to midnight
+			let fpStartDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+			let fpEndDate   = new Date(twoWeeks.getFullYear(), twoWeeks.getMonth(), twoWeeks.getDate());
+
+			const fpStart = flatpickr('#start-date', {
+				dateFormat: 'd.m.Y',
+				defaultDate: today,
+				locale: { firstDayOfWeek: 1 },
+				onChange(selectedDates) {
+					if (selectedDates[0]) {
+						const d = selectedDates[0];
+						fpStartDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+						calculate();
+					}
+				}
+			});
+
+			const fpEnd = flatpickr('#end-date', {
+				dateFormat: 'd.m.Y',
+				defaultDate: twoWeeks,
+				locale: { firstDayOfWeek: 1 },
+				onChange(selectedDates) {
+					if (selectedDates[0]) {
+						const d = selectedDates[0];
+						fpEndDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+						calculate();
+					}
+				}
+			});
+
+			// Override how calculate() reads dates — use flatpickr values
+			function getStartDate() { return fpStartDate; }
+			function getEndDate()   { return fpEndDate; }
+
+			calculate();
+		</script>
+	</body>
+</html>
