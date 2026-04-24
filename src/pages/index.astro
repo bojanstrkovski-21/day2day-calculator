@@ -283,36 +283,50 @@ const holidaysJSON = JSON.stringify(holidayMap);
 			/* Results */
 			.results {
 				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+				grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 				gap: 1rem;
 				margin-top: 1.25rem;
+			}
+
+			.results-hours {
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				gap: 1rem;
+				margin-top: 1rem;
+			}
+
+			.results-hours .result-box {
+				flex: unset;
 			}
 
 			.result-box {
 				background: var(--bg2);
 				border: 2px solid var(--bg3);
 				border-radius: 10px;
-				padding: 1rem;
+				padding: 1.25rem 1rem;
 				text-align: center;
 				transition: border-color .2s;
 			}
 
-			.result-box.total    { border-color: var(--blue); }
-			.result-box.workdays { border-color: var(--green); }
-			.result-box.weekends { border-color: var(--orange); }
-			.result-box.holidays { border-color: var(--red); }
+			.result-box.total         { border-color: var(--blue); }
+			.result-box.workdays      { border-color: var(--green); }
+			.result-box.weekends      { border-color: var(--orange); }
+			.result-box.holidays      { border-color: var(--red); }
+			.result-box.total-hours   { border-color: var(--aqua); }
+			.result-box.work-hours    { border-color: var(--purple); }
 
 			.result-box .value {
-				font-size: 2rem;
-				font-weight: 700;
-				line-height: 1;
-				margin-bottom: 0.25rem;
-			}
-
-			.result-box.total    .value { color: var(--blue); }
-			.result-box.workdays .value { color: var(--green); }
-			.result-box.weekends .value { color: var(--orange); }
-			.result-box.holidays .value { color: var(--red); }
+					font-size: 2.25rem;
+					font-weight: 700;
+					line-height: 1;
+					margin-bottom: 0.35rem;
+				}
+			.result-box.total         .value { color: var(--blue); }
+			.result-box.workdays      .value { color: var(--green); }
+			.result-box.weekends      .value { color: var(--orange); }
+			.result-box.holidays      .value { color: var(--red); }
+			.result-box.total-hours   .value { color: var(--aqua); }
+			.result-box.work-hours    .value { color: var(--purple); }
 
 			.result-box .label {
 				font-size: 0.75rem;
@@ -543,6 +557,7 @@ const holidaysJSON = JSON.stringify(holidayMap);
 
 				<div id="results-section">
 					<div class="results" id="results-grid"></div>
+					<div class="results-hours" id="results-hours"></div>
 					<div class="duration-bar"></div>
 				</div>
 			</div>
@@ -752,6 +767,8 @@ const holidaysJSON = JSON.stringify(holidayMap);
 					? `<div style="font-size:.7rem;color:var(--grey1);margin-top:.25rem">${weekdayHolidays} on workday${weekdayHolidays !== 1 ? 's' : ''}</div>`
 					: '';
 
+				const workHoursVal = (mode === 'all' ? weekdaysTotal : workdays) * 8;
+
 				grid.innerHTML = `
 					<div class="result-box total">
 						<div class="value">${totalDays}</div>
@@ -766,6 +783,17 @@ const holidaysJSON = JSON.stringify(holidayMap);
 						<div class="value">${holidayDays}</div>
 						<div class="label">Public Holidays (MK)</div>
 						${holidayNote}
+					</div>
+				`;
+
+				document.getElementById('results-hours').innerHTML = `
+					<div class="result-box total-hours">
+						<div class="value">${totalDays * 8}</div>
+						<div class="label">Total Days × 8h</div>
+					</div>
+					<div class="result-box work-hours">
+						<div class="value">${workHoursVal}</div>
+						<div class="label">Working Days × 8h</div>
 					</div>
 				`;
 
