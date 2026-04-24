@@ -77,6 +77,15 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				font-weight: 700;
 				margin-bottom: 0.25rem;
 				color: var(--green);
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+			}
+
+			h1 img {
+				width: 6rem;
+				height: 6rem;
+				object-fit: contain;
 			}
 
 			.subtitle {
@@ -522,19 +531,19 @@ const holidaysJSON = JSON.stringify(holidayMap);
 	</head>
 	<body>
 		<div class="container">
-			<h1>📅 Date Duration Calculator</h1>
-			<p class="subtitle">Calculate days, workdays and business days between two dates — North Macedonia holidays included.</p>
+			<h1><img src="/day2day-calculator/images/Calendar-2.png" alt="" aria-hidden="true" /> Калкулатор на период на отсуство</h1>
+			<p class="subtitle">Пресметајте денови, работни денови,работни сати и вкупно сати,  помеѓу два датуми — вклучувајќи празници во Северна Македонија.</p>
 
 			<div class="card">
-				<h2>Select Date Range</h2>
+				<h2>Период на отсуство</h2>
 
 				<div class="date-row">
 					<div class="field">
-						<label for="start-date">Start Date</label>
+						<label for="start-date">Почетен датум</label>
 						<input type="text" id="start-date" placeholder="DD.MM.YYYY" readonly="readonly" />
 					</div>
 					<div class="field">
-						<label for="end-date">End Date</label>
+						<label for="end-date">Краен датум</label>
 						<input type="text" id="end-date" placeholder="DD.MM.YYYY" readonly="readonly" />
 					</div>
 				</div>
@@ -542,18 +551,18 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				<div style="margin-bottom:1rem;">
 					<label class="checkbox-row">
 						<input type="checkbox" id="include-end" checked />
-						Include end date in calculation
+						Вклучи краен датум во пресметката
 					</label>
 				</div>
 
-				<h2 style="margin-bottom:.75rem;">Count Method</h2>
+				<h2 style="margin-bottom:.75rem;">Метод на пресметка</h2>
 				<div class="options">
-					<button class="option-btn active" data-mode="all">All Days</button>
-					<button class="option-btn" data-mode="weekends">Exclude Weekends</button>
-					<button class="option-btn" data-mode="holidays">Exclude Weekends &amp; Holidays (MK)</button>
+					<button class="option-btn active" data-mode="all">Сите денови</button>
+					<button class="option-btn" data-mode="weekends">Исклучи викенди</button>
+					<button class="option-btn" data-mode="holidays">Исклучи викенди и празници (MK)</button>
 				</div>
 
-				<p class="error" id="error-msg">Please select a valid start and end date (end must be after start).</p>
+				<p class="error" id="error-msg">Ве молиме изберете валиден почетен и краен датум (крајниот мора да е по почетниот).</p>
 
 				<div id="results-section">
 					<div class="results" id="results-grid"></div>
@@ -563,30 +572,30 @@ const holidaysJSON = JSON.stringify(holidayMap);
 			</div>
 
 			<div class="card" id="calendar-card" style="display:none">
-				<h2>Calendar Preview</h2>
+				<h2>Преглед на календар</h2>
 				<div class="calendar-grid-wrapper">
 					<div class="calendar-months" id="calendar-months"></div>
 				</div>
 				<div class="legend">
 					<div class="legend-item">
-						<div class="legend-dot" style="background:var(--blue)"></div> Start / End date
+						<div class="legend-dot" style="background:var(--blue)"></div> Почетен / Краен датум
 					</div>
 					<div class="legend-item">
-						<div class="legend-dot" style="background:var(--bg3)"></div> In range (workday)
+						<div class="legend-dot" style="background:var(--bg3)"></div> Во опсег (работен ден)
 					</div>
 					<div class="legend-item">
-						<div class="legend-dot" style="background:var(--orange)"></div> Weekend
+						<div class="legend-dot" style="background:var(--orange)"></div> Викенд денови			
 					</div>
 					<div class="legend-item">
-						<div class="legend-dot" style="background:var(--red)"></div> Public Holiday (MK)
+						<div class="legend-dot" style="background:var(--red)"></div> Државен празник во работен ден
 					</div>
 					<div class="legend-item">
-						<div class="legend-dot" style="background:var(--bg3)"></div> Holiday on Weekend
+						<div class="legend-dot" style="background:var(--bg3)"></div> Државен празник во викенд
 					</div>
 				</div>
 
 				<div id="holiday-list-section" style="display:none">
-					<h2 style="margin-top:1.5rem; margin-bottom:.5rem; color:var(--aqua);">Holidays in Range</h2>
+					<h2 style="margin-top:1.5rem; margin-bottom:.5rem; color:var(--aqua);">Празници во опсег</h2>
 					<div class="holiday-list" id="holiday-list"></div>
 				</div>
 			</div>
@@ -734,10 +743,10 @@ const holidaysJSON = JSON.stringify(holidayMap);
 
 				let breakdown = '';
 				const parts = [];
-				if (years > 0) parts.push(`${years} year${years !== 1 ? 's' : ''}`);
-				if (months > 0) parts.push(`${months} month${months !== 1 ? 's' : ''}`);
-				if (remainingDays > 0) parts.push(`${remainingDays} day${remainingDays !== 1 ? 's' : ''}`);
-				breakdown = parts.join(', ') || '0 days';
+				if (years > 0) parts.push(`${years} ${years !== 1 ? 'години' : 'година'}`);
+				if (months > 0) parts.push(`${months} ${months !== 1 ? 'месеци' : 'месец'}`);
+				if (remainingDays > 0) parts.push(`${remainingDays} ${remainingDays !== 1 ? 'денови' : 'ден'}`);
+				breakdown = parts.join(', ') || '0 денови';
 
 				// Build result boxes based on mode
 				let workdayBox = '';
@@ -758,7 +767,7 @@ const holidaysJSON = JSON.stringify(holidayMap);
 					workdayBox = `
 						<div class="result-box workdays">
 							<div class="value">${weekdaysTotal}</div>
-							<div class="label">Workdays (Mon–Fri)</div>
+							<div class="label">Работни денови</div>
 						</div>`;
 				}
 
@@ -772,36 +781,36 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				grid.innerHTML = `
 					<div class="result-box total">
 						<div class="value">${totalDays}</div>
-						<div class="label">Total Days</div>
+						<div class="label">Вкупно денови</div>
 					</div>
 					${workdayBox}
 					<div class="result-box weekends">
 						<div class="value">${weekendDays}</div>
-						<div class="label">Weekend Days</div>
+						<div class="label">Викенд денови</div>
 					</div>
 					<div class="result-box holidays">
 						<div class="value">${holidayDays}</div>
-						<div class="label">Public Holidays (MK)</div>
+						<div class="label">Државни празници</div>
 						${holidayNote}
 					</div>
 				`;
 
 				document.getElementById('results-hours').innerHTML = `
 					<div class="result-box total-hours">
-						<div class="value">${totalDays * 8}</div>
-						<div class="label">Total Days × 8h</div>
+						<div class="value">${totalDays * 8}h</div>
+						<div class="label">Вкупно часови</div>
 					</div>
 					<div class="result-box work-hours">
-						<div class="value">${workHoursVal}</div>
-						<div class="label">Working Days × 8h</div>
+						<div class="value">${workHoursVal}h</div>
+						<div class="label">Работни часови</div>
 					</div>
 				`;
 
 				document.querySelector('.duration-bar').innerHTML = `
-					<span style="font-size:.8rem;color:var(--grey1);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Duration: </span>
+					<span style="font-size:.8rem;color:var(--grey1);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Период: </span>
 					<span style="font-size:.95rem;font-weight:600;color:var(--yellow);">${breakdown}</span>
 					&nbsp;·&nbsp;
-					<span style="font-size:.8rem;color:var(--grey2);">${weeks} week${weeks !== 1 ? 's' : ''} + ${totalDays % 7} day${totalDays % 7 !== 1 ? 's' : ''}</span>
+					<span style="font-size:.8rem;color:var(--grey2);">${weeks} недела${weeks !== 1 ? 'и' : ''} + ${totalDays % 7} ден${totalDays % 7 !== 1 ? 'ови' : ''}</span>
 				`;
 			}
 
@@ -825,9 +834,10 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				}
 			}
 
-			const MONTH_NAMES = ['January','February','March','April','May','June',
-				'July','August','September','October','November','December'];
-			const DAY_NAMES = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+			const MONTH_NAMES = ['Јануари','Февруари','Март','Април','Мај','Јуни',
+				'Јули','Август','Септември','Октомври','Ноември','Декември'];
+			const DAY_NAMES = ['Пон','Вто','Сре','Чет','Пет','Саб','Нед'];
+			const DAY_NAMES_SHORT = ['Недела','Понеделник','Вторник','Среда','Четврток','Петок','Сабота']; // 0=Sun
 
 			function renderMonth(year, month, rangeStart, rangeEnd) {
 				const wrapper = document.createElement('div');
@@ -926,7 +936,7 @@ const holidaysJSON = JSON.stringify(holidayMap);
 				section.style.display = 'block';
 				list.innerHTML = holidays.map(h => {
 					const d = parseLocalDate(h.date);
-					const friendly = d.toLocaleDateString('mk-MK', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+					const friendly = `${DAY_NAMES_SHORT[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
 					const weekendStyle = h.isWeekend
 						? 'background:var(--bg2);opacity:.6;'
 						: '';
